@@ -6,34 +6,31 @@ struct ContentView: View {
     @State private var newNoteTitle = ""
     @State private var mainTitle = "MY NOTES"
     @State private var newNoteContent = ""
-    @State private var isDarkMode = false
 
     var body: some View {
         NavigationView {
             List {
-                ForEach(notes) { note in
-                    NavigationLink(destination: NoteDetail(note: note, isDarkMode: $isDarkMode)) {
-                        Text(note.title)
-                            .foregroundColor(isDarkMode ? .white : .black)
+                ForEach(notes.indices, id: \.self) { index in
+                    NavigationLink(destination: NoteDetail(note: $notes[index])) {
+                        Text(notes[index].title)
+                            .foregroundColor(.black)
                     }
                 }
                 .onDelete(perform: deleteNote)
             }
-          
-            .navigationBarItems(leading:
-                Button(action: {
-                    isDarkMode.toggle()
-                }) {
-                    Image(systemName: isDarkMode ? "sun.max.fill" : "moon.fill")
-                },
+            .navigationBarItems(
                 trailing:
-                Button(action: {
-                    isAddingNote = true
-                }) {
-                    Image(systemName: "plus")
+                HStack {
+                    Button(action: {
+                        isAddingNote = true
+                    }) {
+                        Image(systemName: "plus")
+                    }
+                    EditButton()
                 }
-            )  .navigationBarTitle(mainTitle)
-            .background(isDarkMode ? Color.black : Color.white)
+            )
+            .navigationBarTitle(mainTitle)
+            .background(Color.white)
         }
         .sheet(isPresented: $isAddingNote) {
             NavigationView {
@@ -59,9 +56,8 @@ struct ContentView: View {
                 )
             }
         }
-        .environment(\.editMode, .constant(EditMode.active))
     }
-    
+
     func deleteNote(at offsets: IndexSet) {
         notes.remove(atOffsets: offsets)
     }
@@ -73,27 +69,33 @@ struct ContentView_Previews: PreviewProvider {
     }
 }
 
-struct Note: Identifiable {
+struct Note: Identifiable, Equatable {
     let id = UUID()
     var title: String
     var content: String
 }
-
 struct NoteDetail: View {
-    var note: Note
-    @Binding var isDarkMode: Bool // Add a binding to isDarkMode
+    @Binding var note: Note
+    @State private var editedTitle = ""
+    @State private var editedContent = ""
 
     var body: some View {
         VStack {
-            Text(note.title)
-                .font(.title)
-                .foregroundColor(isDarkMode ? .white : .black)
-            
-            Text(note.content)
-                .padding()
-                .foregroundColor(isDarkMode ? .white : .black)
-            Spacer()
+            TextField("Title", text: $editedTitle)
+                .font(.system(size: 26, weight: .bold))
+            TextEditor(text: $editedContent)
+                .foregroundColor(.black)
         }
-        .navigationTitle("Note Detail")
+        .onAppear {
+            editedTitle = note.title
+            editedContent = note.content
+        }
+        .navigationBarItems(trailing:
+            Button("Save") {
+                note.title = editedTitle
+                note.content = editedContent
+            }
+        )
     }
 }
+
